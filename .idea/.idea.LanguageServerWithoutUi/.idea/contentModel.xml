@@ -6,9 +6,11 @@
     <e p="C:\Users\b0mwald\.Rider2018.2\system\extResources" t="IncludeRecursive" />
     <e p="C:\Users\b0mwald\.Rider2018.2\system\resharper-host\local\Transient\ReSharperHost\v182\SolutionCaches\_LanguageServerWithoutUi.2100431752.00" t="ExcludeRecursive" />
     <e p="D:\Programming\Masterarbeit\LanguageServerWithoutUi" t="IncludeFlat">
+      <e p=".git\info\exclude" t="IncludeRecursive" />
       <e p="LanguageServerWithoutUi" t="IncludeRecursive">
         <e p=".gitignore" t="Include" />
         <e p="bin" t="ExcludeRecursive" />
+        <e p="de-DE.keywords" t="Include" />
         <e p="IStepService.cs" t="Include" />
         <e p="LanguageServerWithoutUi.csproj" t="IncludeRecursive" />
         <e p="ListStepService.cs" t="Include" />
