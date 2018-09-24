@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ContentModelStore">
+    <e p="C:\Users\b0mwald\.Rider2018.2\config\consoles\db" t="IncludeRecursive" />
+    <e p="C:\Users\b0mwald\.Rider2018.2\config\extensions" t="IncludeRecursive" />
+    <e p="C:\Users\b0mwald\.Rider2018.2\system\extResources" t="IncludeRecursive" />
+    <e p="C:\Users\b0mwald\.Rider2018.2\system\resharper-host\local\Transient\ReSharperHost\v182\SolutionCaches\_LanguageServerWithoutUi.2100431752.00" t="ExcludeRecursive" />
+    <e p="D:\Programming\Masterarbeit\LanguageServerWithoutUi" t="IncludeFlat">
+      <e p="LanguageServerWithoutUi" t="IncludeRecursive">
+        <e p=".gitignore" t="Include" />
+        <e p="bin" t="ExcludeRecursive" />
+        <e p="IStepService.cs" t="Include" />
+        <e p="LanguageServerWithoutUi.csproj" t="IncludeRecursive" />
+        <e p="ListStepService.cs" t="Include" />
+        <e p="obj" t="ExcludeRecursive">
+          <e p="Debug" t="Include">
+            <e p="netcoreapp2.1" t="Include">
+              <e p="LanguageServerWithoutUi.AssemblyInfo.cs" t="Include" />
+            </e>
+          </e>
+        </e>
+        <e p="Program.cs" t="Include" />
+        <e p="StepServiceTest.cs" t="Include" />
+        <e p="Test.feature" t="Include" />
+        <e p="TextDocumentHandler.cs" t="Include" />
+      </e>
+      <e p="LanguageServerWithoutUi.sln" t="IncludeFlat" />
+      <e p="packages" t="ExcludeRecursive" />
+    </e>
+  </component>
+</project>
