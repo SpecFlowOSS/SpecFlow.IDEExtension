@@ -1,0 +1,10 @@
+feature:Feature,Business Need,Ability
+background:Background
+scenario:Scenario
+scenarioOutline:Scenario Outline,Scenario Template
+examples:Examples,Scenarios
+given:*,Given
+when:*,When
+then:*,Then
+and:*,And
+but:*,But 

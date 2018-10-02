@@ -1,11 +1,11 @@
-I want completion
-I want completion
-I want completion too
-I I want completion too
-I I I I want completion too I I want completion
-Given I want completion
-When I want completion
-Then I want completion too
-Given
-When
-Given
+Funktionalität: Beschreibungstext
+    Szenario: Test1
+    
+    
+        Angenommen Ich hab 2 Bananen
+        Wenn dsadsadsadsaf
+        Dann 
+        
+    Szenario
+        Angenommen 
+        Angenommen

@@ -10,10 +10,14 @@
       <e p="LanguageServerWithoutUi" t="IncludeRecursive">
         <e p=".gitignore" t="Include" />
         <e p="bin" t="ExcludeRecursive" />
-        <e p="de-DE.keywords" t="Include" />
         <e p="IStepService.cs" t="Include" />
+        <e p="Keywords.cs" t="Include" />
         <e p="LanguageServerWithoutUi.csproj" t="IncludeRecursive" />
         <e p="ListStepService.cs" t="Include" />
+        <e p="localization" t="Include">
+          <e p="de-DE.keywords" t="Include" />
+          <e p="en-US.keywords" t="Include" />
+        </e>
         <e p="obj" t="ExcludeRecursive">
           <e p="Debug" t="Include">
             <e p="netcoreapp2.1" t="Include">

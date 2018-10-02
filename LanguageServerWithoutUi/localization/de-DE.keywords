@@ -1,0 +1,10 @@
+feature:Funktionalität
+background:Grundlage
+scenario:Szenario
+scenarioOutline:Szenariogrundriss
+examples:Beispiele
+given:Angenommen,Gegeben sei,Gegeben seien
+when:*,Wenn
+then:*,Dann
+and:*,Und
+but:*,Aber

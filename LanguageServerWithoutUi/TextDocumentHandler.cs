@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using OmniSharp.Extensions.JsonRpc;
@@ -102,18 +103,10 @@ namespace LanguageServerWithoutUi
 
         public Task<CompletionList> Handle(TextDocumentPositionParams request, CancellationToken token)
         {
-            //_router.ShowInfo(request.TextDocument.ToString());
-            
-            
-            return Task.FromResult(new CompletionList(
-                new CompletionItem
-                {
-                    Label = "Given"
-                },
-                new CompletionItem
-                {
-                    Label = "When"
-                }));
+            var localizedKeywords = Keywords.GetAllKeywordsForLanguage("de-DE");
+            var listOfKeywords = localizedKeywords.SelectMany(keyword => keyword.Value.Keywords)
+                .Select(keyword => new CompletionItem{Label = keyword});
+            return Task.FromResult(new CompletionList(listOfKeywords));
         }
 
         CompletionRegistrationOptions IRegistration<CompletionRegistrationOptions>.GetRegistrationOptions()
