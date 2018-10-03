@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,13 +5,12 @@ using System.Reflection;
 
 namespace LanguageServerWithoutUi
 {
-    public static class Keywords
+    public static class KeywordProvider
     {
-        private static readonly Dictionary<string, KeywordDictionary> keywords = parseKeywords();
+        private static readonly Dictionary<string, KeywordDictionary> Keywords = ParseKeywords();
 
-        private static Dictionary<string, KeywordDictionary> parseKeywords()
+        private static Dictionary<string, KeywordDictionary> ParseKeywords()
         {
-            Console.WriteLine("Parsing keywords");
             var workingDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             var localizationPath = Path.Combine(workingDir, "localization");
             return Directory.EnumerateFiles(localizationPath).Select(ParseFile)
@@ -21,7 +19,6 @@ namespace LanguageServerWithoutUi
 
         private static KeywordDictionary ParseFile(string filePath)
         {
-            Console.WriteLine("Parsing file: " + filePath);
             var lines = File.ReadAllLines(filePath);
             var dict = lines.Select(ParseLine).ToDictionary(keyword => keyword.Identifier);
 
@@ -38,7 +35,7 @@ namespace LanguageServerWithoutUi
 
         public static Dictionary<GherkinKeyword, LocalizedKeywords> GetAllKeywordsForLanguage(string languageId)
         {
-            return keywords[languageId].KeywordMapping;
+            return Keywords[languageId].KeywordMapping;
         }
 
         private class KeywordDictionary
@@ -50,12 +47,12 @@ namespace LanguageServerWithoutUi
         public class LocalizedKeywords
         {
             public readonly GherkinKeyword Identifier;
-            public string[] Keywords;
+            public readonly string[] AllKeywords;
 
             internal LocalizedKeywords(string keywordString, string[] localizedKeywords)
             {
                 Identifier = GetIdentifier(keywordString);
-                Keywords = localizedKeywords;
+                AllKeywords = localizedKeywords;
             }
 
             private static GherkinKeyword GetIdentifier(string keywordString)

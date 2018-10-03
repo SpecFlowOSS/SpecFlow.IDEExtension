@@ -9,3 +9,4 @@ Funktionalität: Beschreibungstext
     Szenario
         Angenommen 
         Angenommen
+        Dann

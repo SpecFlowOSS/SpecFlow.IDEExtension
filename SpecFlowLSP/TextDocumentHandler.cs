@@ -2,13 +2,11 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using OmniSharp.Extensions.JsonRpc;
-using OmniSharp.Extensions.JsonRpc.Server;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
-using OmniSharp.Extensions.LanguageServer.Server;
+using ILanguageServer = OmniSharp.Extensions.LanguageServer.Server.ILanguageServer;
 
 namespace LanguageServerWithoutUi
 {
@@ -103,8 +101,8 @@ namespace LanguageServerWithoutUi
 
         public Task<CompletionList> Handle(TextDocumentPositionParams request, CancellationToken token)
         {
-            var localizedKeywords = Keywords.GetAllKeywordsForLanguage("de-DE");
-            var listOfKeywords = localizedKeywords.SelectMany(keyword => keyword.Value.Keywords)
+            var localizedKeywords = KeywordProvider.GetAllKeywordsForLanguage("de-DE");
+            var listOfKeywords = localizedKeywords.SelectMany(keyword => keyword.Value.AllKeywords)
                 .Select(keyword => new CompletionItem{Label = keyword});
             return Task.FromResult(new CompletionList(listOfKeywords));
         }

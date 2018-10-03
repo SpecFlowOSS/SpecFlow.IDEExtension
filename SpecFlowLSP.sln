@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LanguageServerWithoutUi", "LanguageServerWithoutUi\LanguageServerWithoutUi.csproj", "{6E41F9BE-FAE9-4919-8022-795A8B0D7E80}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpecFlowLSP", "SpecFlowLSP\SpecFlowLSP.csproj", "{6E41F9BE-FAE9-4919-8022-795A8B0D7E80}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
