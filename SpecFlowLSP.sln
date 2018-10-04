@@ -1,6 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpecFlowLSP", "SpecFlowLSP\SpecFlowLSP.csproj", "{6E41F9BE-FAE9-4919-8022-795A8B0D7E80}"
+# Visual Studio 15
+VisualStudioVersion = 15.0.27924.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SpecFlowLSP", "SpecFlowLSP\SpecFlowLSP.csproj", "{6E41F9BE-FAE9-4919-8022-795A8B0D7E80}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpecFlowLSP.Client.VisualStudio", "SpecFlowLSP.Client.VisualStudio\SpecFlowLSP.Client.VisualStudio.csproj", "{6DC3D52F-840C-4443-80AB-1425AD1F2A16}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6E41F9BE-FAE9-4919-8022-795A8B0D7E80} = {6E41F9BE-FAE9-4919-8022-795A8B0D7E80}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -12,5 +20,15 @@ Global
 		{6E41F9BE-FAE9-4919-8022-795A8B0D7E80}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6E41F9BE-FAE9-4919-8022-795A8B0D7E80}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6E41F9BE-FAE9-4919-8022-795A8B0D7E80}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6DC3D52F-840C-4443-80AB-1425AD1F2A16}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6DC3D52F-840C-4443-80AB-1425AD1F2A16}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6DC3D52F-840C-4443-80AB-1425AD1F2A16}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6DC3D52F-840C-4443-80AB-1425AD1F2A16}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F7091F92-F0E6-4CFC-8921-EE2F0BE50C45}
 	EndGlobalSection
 EndGlobal
