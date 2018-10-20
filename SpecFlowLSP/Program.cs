@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
+using Gherkin;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
 
-namespace LanguageServerWithoutUi
+namespace SpecFlowLSP
 {
     class Program
     {
@@ -15,13 +18,25 @@ namespace LanguageServerWithoutUi
 
         static async Task MainAsync(string[] args)
         {
+            /*while (!System.Diagnostics.Debugger.IsAttached)
+            {
+                await Task.Delay(100);
+            }*/
+            
+            
             var server = new LanguageServer(
                 Console.OpenStandardInput(),
                 Console.OpenStandardOutput(),
                 new LoggerFactory());
+            var manager = new GherkinManager();
 
-            server.AddHandler(new TextDocumentHandler(server));
+            server.OnInitialize(request =>
+            {
+                manager.HandleStartup(request.RootPath);
+                return Task.CompletedTask;
+            });
 
+            server.AddHandler(new TextDocumentHandler(server, manager));
             await server.Initialize();
             await server.WaitForExit;
         }

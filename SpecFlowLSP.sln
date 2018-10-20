@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpecFlowLSP.Client.VisualSt
 		{6E41F9BE-FAE9-4919-8022-795A8B0D7E80} = {6E41F9BE-FAE9-4919-8022-795A8B0D7E80}
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpecFlowLSP.Test", "SpecFlowLSP.Test\SpecFlowLSP.Test.csproj", "{75C42DF8-8AD9-47DC-A6EE-6B4571B99D1A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,6 +26,10 @@ Global
 		{6DC3D52F-840C-4443-80AB-1425AD1F2A16}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6DC3D52F-840C-4443-80AB-1425AD1F2A16}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6DC3D52F-840C-4443-80AB-1425AD1F2A16}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75C42DF8-8AD9-47DC-A6EE-6B4571B99D1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75C42DF8-8AD9-47DC-A6EE-6B4571B99D1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75C42DF8-8AD9-47DC-A6EE-6B4571B99D1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75C42DF8-8AD9-47DC-A6EE-6B4571B99D1A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

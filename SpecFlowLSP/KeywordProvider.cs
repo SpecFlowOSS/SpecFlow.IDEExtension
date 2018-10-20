@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
-namespace LanguageServerWithoutUi
+namespace SpecFlowLSP
 {
     public static class KeywordProvider
     {
