@@ -7,9 +7,9 @@ namespace SpecFlowLSP
 {
     public static class KeywordProvider
     {
-        private static readonly Dictionary<string, KeywordDictionary> Keywords = ParseKeywords();
+        private static readonly IDictionary<string, KeywordDictionary> Keywords = ParseKeywords();
 
-        private static Dictionary<string, KeywordDictionary> ParseKeywords()
+        private static IDictionary<string, KeywordDictionary> ParseKeywords()
         {
             var workingDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             var localizationPath = Path.Combine(workingDir, "localization");
@@ -28,12 +28,12 @@ namespace SpecFlowLSP
 
         private static LocalizedKeywords ParseLine(string line)
         {
-            var idKeyword = line.Split(':');
+            var idKeyword = line.Split(';');
             var keywords = idKeyword[1].Split(',');
             return new LocalizedKeywords(idKeyword[0], keywords);
         }
 
-        public static Dictionary<GherkinKeyword, LocalizedKeywords> GetAllKeywordsForLanguage(string languageId)
+        public static IDictionary<GherkinKeyword, LocalizedKeywords> GetAllKeywordsForLanguage(in string languageId)
         {
             return Keywords[languageId].KeywordMapping;
         }

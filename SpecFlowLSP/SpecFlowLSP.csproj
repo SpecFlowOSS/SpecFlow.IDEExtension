@@ -16,5 +16,8 @@
     <None Update="localization\en-US.keywords">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="localization\en.keywords">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

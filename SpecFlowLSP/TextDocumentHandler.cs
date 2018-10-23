@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gherkin;
-using Gherkin.Ast;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -149,14 +147,47 @@ namespace SpecFlowLSP
 
         public Task<CompletionList> Handle(TextDocumentPositionParams request, CancellationToken token)
         {
-            var localizedKeywords = KeywordProvider.GetAllKeywordsForLanguage("de-DE");
-            var listOfKeywords = localizedKeywords.SelectMany(keyword => keyword.Value.AllKeywords)
-                .Select(keyword => new CompletionItem {Label = keyword});
-            var stepCompletion = _manager.GetSteps().Select(ToCompletionItem);
-            return Task.FromResult(new CompletionList(stepCompletion));
+            var filePath = Path.GetFullPath(request.TextDocument.Uri.AbsolutePath);
+            var language = _manager.GetLanguage(filePath);
+            var text = File.ReadAllLines(filePath);
+            var context = ContextResolver.ResolveContext(text, (int) request.Position.Line, language);
+
+            IEnumerable<CompletionItem> completionItems;
+
+            if (context == CompletionContext.Step)
+            {
+                completionItems = GetStepCompletion(request, filePath);
+            }
+            else
+            {
+                completionItems = ToCompletionItem(ContextResolver.GetAllKeywordsForContext(context, language));
+            }
+
+
+
+            return Task.FromResult(new CompletionList(completionItems));
         }
 
-        private static CompletionItem ToCompletionItem(Step step)
+        private static IEnumerable<CompletionItem> ToCompletionItem(IEnumerable<string> allKeywords)
+        {
+            return allKeywords.Select(keyword => new CompletionItem {Label = keyword});
+        }
+
+        private IEnumerable<CompletionItem> GetStepCompletion(TextDocumentPositionParams request, string filePath)
+        {
+            var stepCompletion = _manager.GetSteps()
+                .Where(step => NotCurrentStep(step, filePath, request.Position.Line))
+                .Distinct(StepInfo.TextComparer)
+                .Select(ToCompletionItem);
+            return stepCompletion;
+        }
+
+        private static bool NotCurrentStep(StepInfo step, string filePath, long line)
+        {
+            return step.Line != line || step.FilePath != filePath;
+        }
+
+        private static CompletionItem ToCompletionItem(StepInfo step)
         {
             return new CompletionItem
             {

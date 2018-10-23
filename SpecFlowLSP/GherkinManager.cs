@@ -1,9 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Gherkin;
-using Gherkin.Ast;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace SpecFlowLSP
 {
@@ -15,8 +12,9 @@ namespace SpecFlowLSP
 
         public IEnumerable<ParseErrorInformation> HandleParseRequest(in string path, in string text)
         {
-            var file = _parser.ParseFile(text, path);
-            _files[path] = file;
+            var distinctPath = Path.GetFullPath(path);
+            var file = _parser.ParseFile(text, distinctPath);
+            _files[distinctPath] = file;
             return file.ErrorInformation;
         }
 
@@ -27,9 +25,14 @@ namespace SpecFlowLSP
                 .ToList().ForEach(path => HandleParseRequest(path, File.ReadAllText(path)));
         }
 
-        public IEnumerable<Step> GetSteps()
+        public IEnumerable<StepInfo> GetSteps()
         {
             return _files.Values.SelectMany(file => file.AllSteps).ToList();
+        }
+
+        public string GetLanguage(in string filePath)
+        {
+            return _files[filePath]?.Document?.Feature?.Language ?? "en";
         }
     }
 }

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Gherkin;
 using Gherkin.Ast;
 
 namespace SpecFlowLSP
@@ -17,24 +16,30 @@ namespace SpecFlowLSP
         public GherkinFile(in string path, in IEnumerable<ParseErrorInformation> errorInformation,
             in GherkinDocument document)
         {
-            Filepath = path;
+            FilePath = path;
             Document = document;
             ErrorInformation = errorInformation;
-            _allStepsLazy = new Lazy<IEnumerable<Step>>(CalculateSteps);
+            _allStepsLazy = new Lazy<IEnumerable<StepInfo>>(CalculateSteps);
         }
 
 
 
-        private readonly Lazy<IEnumerable<Step>> _allStepsLazy;
-        public IEnumerable<Step> AllSteps => _allStepsLazy.Value;
-        public string Filepath { get; }
+        private readonly Lazy<IEnumerable<StepInfo>> _allStepsLazy;
+        public IEnumerable<StepInfo> AllSteps => _allStepsLazy.Value;
+        public string FilePath { get; }
         public bool HasError => ErrorInformation.Any();
         public GherkinDocument Document { get; }
         public IEnumerable<ParseErrorInformation> ErrorInformation { get; }
 
-        private IEnumerable<Step> CalculateSteps()
+        private IEnumerable<StepInfo> CalculateSteps()
         {
-            return Document?.Feature?.Children?.SelectMany(scenario => scenario.Steps) ?? Enumerable.Empty<Step>();
+            return Document?.Feature?.Children?.SelectMany(scenario => scenario.Steps).Select(ToStepInfo).ToList()
+                   ?? Enumerable.Empty<StepInfo>();
+        }
+
+        private StepInfo ToStepInfo(Step step)
+        {
+            return new StepInfo(step.Text, FilePath, step.Location.Line);
         }
     }
 }
