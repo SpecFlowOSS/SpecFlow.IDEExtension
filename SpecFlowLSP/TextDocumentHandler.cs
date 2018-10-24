@@ -49,7 +49,7 @@ namespace SpecFlowLSP
         {
             var path = notification.TextDocument.Uri.AbsolutePath;
             var text = notification.ContentChanges.First().Text;
-            var parserExceptions = _manager.HandleParseRequest(path, text);
+            var parserExceptions = _manager.HandleFileRequest(path, text);
             SendDiagnostic(notification.TextDocument, parserExceptions);
 
             return Task.CompletedTask;
@@ -74,7 +74,7 @@ namespace SpecFlowLSP
         {
             var path = notification.TextDocument.Uri.AbsolutePath;
             var text = notification.TextDocument.Text;
-            var errorInformation = _manager.HandleParseRequest(path, text);
+            var errorInformation = _manager.HandleFileRequest(path, text);
             SendDiagnostic(notification.TextDocument, errorInformation);
 
             return Task.CompletedTask;
@@ -123,6 +123,7 @@ namespace SpecFlowLSP
 
         public Task Handle(DidCloseTextDocumentParams notification)
         {
+            _manager.HandleCloseRequest(notification.TextDocument.Uri.AbsolutePath);
             return Task.CompletedTask;
         }
 
@@ -149,7 +150,7 @@ namespace SpecFlowLSP
         {
             var filePath = Path.GetFullPath(request.TextDocument.Uri.AbsolutePath);
             var language = _manager.GetLanguage(filePath);
-            var text = File.ReadAllLines(filePath);
+            var text = _manager.GetFile(filePath);
             var context = ContextResolver.ResolveContext(text, (int) request.Position.Line, language);
 
             IEnumerable<CompletionItem> completionItems;
