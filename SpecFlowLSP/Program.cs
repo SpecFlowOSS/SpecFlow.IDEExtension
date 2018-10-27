@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using System.Web;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 
@@ -28,7 +29,7 @@ namespace SpecFlowLSP
 
             server.OnInitialize(request =>
             {
-                manager.HandleStartup(request.RootPath);
+                manager.HandleStartup(new Uri(HttpUtility.UrlDecode(request.RootUri.OriginalString)).LocalPath);
                 return Task.CompletedTask;
             });
 
