@@ -9,7 +9,6 @@ namespace SpecFlowLSP
         private string _rootPath;
         private readonly Dictionary<string, GherkinFile> _parsedFiles = new Dictionary<string, GherkinFile>();
         private readonly Dictionary<string, string> _openFiles = new Dictionary<string, string>();
-        private readonly Parser _parser = new Parser();
 
         public IEnumerable<ParseErrorInformation> HandleFileRequest(in string path, in string text)
         {
@@ -23,11 +22,15 @@ namespace SpecFlowLSP
             var distinctPath = Path.GetFullPath(path);
             _openFiles.Remove(distinctPath);
         }
-        
-        public IEnumerable<ParseErrorInformation> HandleParseRequest(in string distinctPath, in string text)
+
+        private IEnumerable<ParseErrorInformation> HandleParseRequest(in string distinctPath, in string text)
         {
-            var file = _parser.ParseFile(text, distinctPath);
-            _parsedFiles[distinctPath] = file;
+            var file = Parser.ParseFile(text, distinctPath);
+            if (!file.HasError)
+            {
+                _parsedFiles[distinctPath] = file;
+            }
+
             return file.ErrorInformation;
         }
 

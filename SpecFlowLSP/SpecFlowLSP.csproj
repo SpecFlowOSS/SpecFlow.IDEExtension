@@ -9,15 +9,4 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.1.1" />
     <PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.8.0" />
   </ItemGroup>
-  <ItemGroup>
-    <None Update="localization\de-DE.keywords">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="localization\en-US.keywords">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="localization\en.keywords">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
 </Project>

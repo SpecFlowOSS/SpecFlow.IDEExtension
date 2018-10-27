@@ -1,48 +1,46 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Gherkin;
+using Gherkin.Ast;
 
 namespace SpecFlowLSP
 {
     public static class ContextResolver
     {
-        public static CompletionContext ResolveContext(in IList<string> text, in GherkinFile parsedFile,
-            in int line)
-        {
-            return ResolveContext(text, line, parsedFile?.Document?.Feature?.Language ?? "en");
-        }
+        private static readonly GherkinDialectProvider DialectProvider = new GherkinDialectProvider();
 
         public static CompletionContext ResolveContext(in IList<string> text,
             in int lineIndex, in string featureLanguage)
         {
-            var allKeywords = KeywordProvider.GetAllKeywordsForLanguage(featureLanguage);
+            var dialect = DialectProvider.GetDialect(featureLanguage, new Location());
             if (text.Count > lineIndex)
             {
                 var currentLineTrimmed = text[lineIndex].Trim();
 
-                if (IsStepContext(currentLineTrimmed, allKeywords))
+                if (IsStepContext(currentLineTrimmed, dialect))
                 {
                     return CompletionContext.Step;
                 }
 
-                if (AlreadyBeginsWithNotStepKeyword(currentLineTrimmed, allKeywords))
+                if (AlreadyBeginsWithNotStepKeyword(currentLineTrimmed, dialect))
                 {
                     return CompletionContext.None;
                 }
             }
 
-            return SearchForContext(text, lineIndex, allKeywords);
+            return SearchForContext(text, lineIndex, dialect);
         }
 
         private static CompletionContext SearchForContext(in IList<string> text, in int lineIndex,
-            in IDictionary<KeywordProvider.GherkinKeyword, KeywordProvider.LocalizedKeywords> allKeywords)
+            in GherkinDialect dialect)
         {
             for (var i = lineIndex - 1; i >= 0; i--)
             {
                 var line = text[i].Trim();
-                var scenarioOutlineKeywords =
-                    AllKeywordsOfTypes(allKeywords, new[] {KeywordProvider.GherkinKeyword.ScenarioOutline});
-                var scenarioKeywords = AllKeywordsOfTypes(allKeywords, new[] {KeywordProvider.GherkinKeyword.Scenario});
-                var featureKeyword = AllKeywordsOfTypes(allKeywords, new[] {KeywordProvider.GherkinKeyword.Feature});
+                var scenarioOutlineKeywords = dialect.ScenarioOutlineKeywords;
+                var scenarioKeywords = dialect.ScenarioKeywords;
+                var featureKeyword = dialect.FeatureKeywords;
                 if (LineStartsWith(line, scenarioOutlineKeywords))
                 {
                     return CompletionContext.ScenarioOutline;
@@ -64,16 +62,16 @@ namespace SpecFlowLSP
 
 
         private static bool AlreadyBeginsWithNotStepKeyword(string trimmedLine,
-            in IDictionary<KeywordProvider.GherkinKeyword, KeywordProvider.LocalizedKeywords> allKeywords)
+            in GherkinDialect dialect)
         {
-            var allNonStepKeywords = AllNonStepKeywords(allKeywords);
+            var allNonStepKeywords = AllNonStepKeywords(dialect);
             return LineStartsWith(trimmedLine, allNonStepKeywords);
         }
 
         private static bool IsStepContext(string trimmedLine,
-            in IDictionary<KeywordProvider.GherkinKeyword, KeywordProvider.LocalizedKeywords> allKeywords)
+            in GherkinDialect dialect)
         {
-            var allStepKeywords = AllStepKeywords(allKeywords);
+            var allStepKeywords = dialect.StepKeywords;
             return LineStartsWith(trimmedLine, allStepKeywords);
         }
 
@@ -82,96 +80,65 @@ namespace SpecFlowLSP
             return allStepKeywords.Any(trimmedLine.StartsWith);
         }
 
-        private static IEnumerable<string> AllNonStepKeywords(
-            in IDictionary<KeywordProvider.GherkinKeyword, KeywordProvider.LocalizedKeywords> allKeywords)
+        private static IEnumerable<string> AllNonStepKeywords(in GherkinDialect dialect)
         {
-            return AllKeywordsOfTypes(allKeywords, new[]
-            {
-                KeywordProvider.GherkinKeyword.Feature,
-                KeywordProvider.GherkinKeyword.Background,
-                KeywordProvider.GherkinKeyword.Scenario,
-                KeywordProvider.GherkinKeyword.ScenarioOutline,
-                KeywordProvider.GherkinKeyword.Examples
-            });
+            return dialect.FeatureKeywords
+                .Union(dialect.BackgroundKeywords)
+                .Union(dialect.ScenarioKeywords)
+                .Union(dialect.ScenarioOutlineKeywords)
+                .Union(dialect.ExamplesKeywords)
+                .Select(word => word + ':');
         }
 
-        private static IEnumerable<string> AllStepKeywords(
-            IDictionary<KeywordProvider.GherkinKeyword, KeywordProvider.LocalizedKeywords> allKeywords)
-        {
-            return AllKeywordsOfTypes(allKeywords, new[]
-            {
-                KeywordProvider.GherkinKeyword.Given,
-                KeywordProvider.GherkinKeyword.When,
-                KeywordProvider.GherkinKeyword.Then,
-                KeywordProvider.GherkinKeyword.And,
-                KeywordProvider.GherkinKeyword.But
-            });
-        }
-
-        private static IEnumerable<string> AllKeywordsOfTypes(
-            IDictionary<KeywordProvider.GherkinKeyword, KeywordProvider.LocalizedKeywords> allKeywords,
-            IEnumerable<KeywordProvider.GherkinKeyword> types)
-        {
-            return allKeywords.Where(keyword => types.Contains(keyword.Key))
-                .SelectMany(keyword => keyword.Value.AllKeywords);
-        }
+        private static readonly IDictionary<CompletionContext, Func<GherkinDialect, IEnumerable<string>>>
+            ContextKeywordMapping =
+                new Dictionary<CompletionContext, Func<GherkinDialect, IEnumerable<string>>>
+                {
+                    {
+                        CompletionContext.Root,
+                        dialect => dialect.FeatureKeywords
+                            .Select(word => word + ':')
+                    },
+                    {
+                        CompletionContext.Feature,
+                        dialect => dialect.ScenarioKeywords
+                            .Union(dialect.ScenarioOutlineKeywords)
+                            .Union(dialect.BackgroundKeywords)
+                            .Select(word => word + ':')
+                    },
+                    {
+                        CompletionContext.Scenario,
+                        dialect => dialect.ScenarioKeywords
+                            .Union(dialect.ScenarioOutlineKeywords)
+                            .Union(dialect.BackgroundKeywords)
+                            .Select(word => word + ':')
+                            .Union(dialect.StepKeywords)
+                    },
+                    {
+                        CompletionContext.ScenarioOutline,
+                        dialect => dialect.ScenarioKeywords
+                            .Union(dialect.ScenarioOutlineKeywords)
+                            .Union(dialect.BackgroundKeywords)
+                            .Union(dialect.ExamplesKeywords)
+                            .Select(word => word + ':')
+                            .Union(dialect.StepKeywords)
+                    },
+                    {
+                        CompletionContext.Step,
+                        dialect => Enumerable.Empty<string>()
+                    },
+                    {
+                        CompletionContext.None,
+                        dialect => Enumerable.Empty<string>()
+                    }
+                };
 
         public static IEnumerable<string> GetAllKeywordsForContext(in CompletionContext context,
             in string language)
         {
-            var allKeywords = KeywordProvider.GetAllKeywordsForLanguage(language);
-            var gherkinKeywords = ContextKeywordMapping[context];
-            return AllKeywordsOfTypes(allKeywords, gherkinKeywords);
+            var dialect = DialectProvider.GetDialect(language, new Location());
+            return ContextKeywordMapping[context](dialect);
         }
-
-
-        private static readonly Dictionary<CompletionContext, IList<KeywordProvider.GherkinKeyword>>
-            ContextKeywordMapping =
-                new Dictionary<CompletionContext, IList<KeywordProvider.GherkinKeyword>>
-                {
-                    {
-                        CompletionContext.Root,
-                        new List<KeywordProvider.GherkinKeyword> {KeywordProvider.GherkinKeyword.Feature}
-                    },
-                    {
-                        CompletionContext.Feature,
-                        new List<KeywordProvider.GherkinKeyword>
-                        {
-                            KeywordProvider.GherkinKeyword.Scenario, KeywordProvider.GherkinKeyword.ScenarioOutline,
-                            KeywordProvider.GherkinKeyword.Background
-                        }
-                    },
-                    {
-                        CompletionContext.Scenario,
-                        new List<KeywordProvider.GherkinKeyword>
-                        {
-                            KeywordProvider.GherkinKeyword.Scenario, KeywordProvider.GherkinKeyword.ScenarioOutline,
-                            KeywordProvider.GherkinKeyword.Background, KeywordProvider.GherkinKeyword.Given,
-                            KeywordProvider.GherkinKeyword.When,
-                            KeywordProvider.GherkinKeyword.Then, KeywordProvider.GherkinKeyword.And,
-                            KeywordProvider.GherkinKeyword.But
-                        }
-                    },
-                    {
-                        CompletionContext.ScenarioOutline,
-                        new List<KeywordProvider.GherkinKeyword>
-                        {
-                            KeywordProvider.GherkinKeyword.Scenario, KeywordProvider.GherkinKeyword.ScenarioOutline,
-                            KeywordProvider.GherkinKeyword.Background, KeywordProvider.GherkinKeyword.Given,
-                            KeywordProvider.GherkinKeyword.When,
-                            KeywordProvider.GherkinKeyword.Then, KeywordProvider.GherkinKeyword.And,
-                            KeywordProvider.GherkinKeyword.But, KeywordProvider.GherkinKeyword.Examples
-                        }
-                    },
-                    {
-                        CompletionContext.Step,
-                        new List<KeywordProvider.GherkinKeyword>()
-                    },
-                    {
-                        CompletionContext.None,
-                        new List<KeywordProvider.GherkinKeyword>()
-                    }
-                };
     }
 
     public enum CompletionContext

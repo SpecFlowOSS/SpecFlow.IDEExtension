@@ -1,3 +1,3 @@
-Feature
-    Scenario
-        Examples
+Feature:
+    Scenario:
+        Given 
