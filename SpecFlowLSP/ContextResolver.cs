@@ -13,7 +13,8 @@ namespace SpecFlowLSP
         public static CompletionContext ResolveContext(in IList<string> text,
             in int lineIndex, in string featureLanguage)
         {
-            var dialect = DialectProvider.GetDialect(featureLanguage, new Location());
+            var dialect = GetDialect(featureLanguage);
+            
             if (text.Count > lineIndex)
             {
                 var currentLineTrimmed = text[lineIndex].Trim();
@@ -27,9 +28,29 @@ namespace SpecFlowLSP
                 {
                     return CompletionContext.None;
                 }
+                
+                if (LineStartsWith(currentLineTrimmed, new[] {"#", "|", "\""}))
+                {
+                    return CompletionContext.None;
+                }
             }
 
             return SearchForContext(text, lineIndex, dialect);
+        }
+
+        private static GherkinDialect GetDialect(string featureLanguage)
+        {
+            GherkinDialect dialect;
+            try
+            {
+                dialect = DialectProvider.GetDialect(featureLanguage, new Location());
+            }
+            catch (NoSuchLanguageException)
+            {
+                dialect = DialectProvider.DefaultDialect;
+            }
+
+            return dialect;
         }
 
         private static CompletionContext SearchForContext(in IList<string> text, in int lineIndex,
@@ -75,9 +96,9 @@ namespace SpecFlowLSP
             return LineStartsWith(trimmedLine, allStepKeywords);
         }
 
-        private static bool LineStartsWith(string trimmedLine, IEnumerable<string> allStepKeywords)
+        private static bool LineStartsWith(string trimmedLine, IEnumerable<string> allKeywords)
         {
-            return allStepKeywords.Any(trimmedLine.StartsWith);
+            return allKeywords.Select(keyword => keyword.Trim()).Any(trimmedLine.StartsWith);
         }
 
         private static IEnumerable<string> AllNonStepKeywords(in GherkinDialect dialect)
@@ -136,7 +157,7 @@ namespace SpecFlowLSP
         public static IEnumerable<string> GetAllKeywordsForContext(in CompletionContext context,
             in string language)
         {
-            var dialect = DialectProvider.GetDialect(language, new Location());
+            var dialect = GetDialect(language);
             return ContextKeywordMapping[context](dialect);
         }
     }

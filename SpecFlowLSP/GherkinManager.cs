@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace SpecFlowLSP
 {
@@ -49,7 +50,18 @@ namespace SpecFlowLSP
 
         public string GetLanguage(in string filePath)
         {
-            return _parsedFiles[filePath]?.Document?.Feature?.Language ?? "en";
+            return TryLanguage(_openFiles[filePath]);
+        }
+
+        public string TryLanguage(in string text)
+        {
+            var language = Regex.Match(text, @"#\s*language\s*:\s*(.*)");
+            return language.Success ? language.Groups[1].Value : GetDefaultLanguage();
+        }
+
+        private string GetDefaultLanguage()
+        {
+            return "en";
         }
 
         public IList<string> GetFile(string filePath)

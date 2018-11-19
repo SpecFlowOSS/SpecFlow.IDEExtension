@@ -152,29 +152,46 @@ namespace SpecFlowLSP
             var language = _manager.GetLanguage(filePath);
             var text = _manager.GetFile(filePath);
             var context = ContextResolver.ResolveContext(text, (int) request.Position.Line, language);
+            var line = text[(int) request.Position.Line];
 
-            IEnumerable<CompletionItem> completionItems;
-
-            if (context == CompletionContext.Step)
-            {
-                completionItems = GetStepCompletion(request, filePath);
-            }
-            else
-            {
-                completionItems = ToCompletionItem(ContextResolver.GetAllKeywordsForContext(context, language));
-            }
-
+            var completionItems =
+                context == CompletionContext.Step
+                    ? GetStepCompletion(request, filePath, line)
+                    : ToCompletionItem(ContextResolver.GetAllKeywordsForContext(context, language), line,
+                        request.Position);
 
 
             return Task.FromResult(new CompletionList(completionItems));
         }
 
-        private static IEnumerable<CompletionItem> ToCompletionItem(IEnumerable<string> allKeywords)
+        private static IEnumerable<CompletionItem> ToCompletionItem(in IEnumerable<string> allKeywords, string line,
+            Position position)
         {
-            return allKeywords.Select(keyword => new CompletionItem {Label = keyword});
+            return allKeywords
+                .Where(keyword => keyword.ToLower().Contains(line.Trim().ToLower()))
+                .Select(keyword => new CompletionItem
+                {
+                    Label = keyword,
+                    Kind = CompletionItemKind.Keyword,
+                    TextEdit = new TextEdit
+                    {
+                        NewText = keyword,
+                        Range = new Range
+                        {
+                            Start = new Position
+                            {
+                                Line = position.Line,
+                                Character = FileUtils.FindLineStart(line)
+                            },
+                            End = position
+                        }
+                    }
+                })
+                .ToList();
         }
 
-        private IEnumerable<CompletionItem> GetStepCompletion(TextDocumentPositionParams request, string filePath)
+        private IEnumerable<CompletionItem> GetStepCompletion(TextDocumentPositionParams request, string filePath,
+            string line)
         {
             var stepCompletion = _manager.GetSteps()
                 .Where(step => NotCurrentStep(step, filePath, request.Position.Line))
