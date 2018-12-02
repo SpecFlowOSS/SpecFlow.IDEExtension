@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Gherkin;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -12,7 +14,7 @@ using ILanguageServer = OmniSharp.Extensions.LanguageServer.Server.ILanguageServ
 
 namespace SpecFlowLSP
 {
-    class TextDocumentHandler : ITextDocumentSyncHandler, ICompletionHandler
+    public class TextDocumentHandler : ITextDocumentSyncHandler, ICompletionHandler
     {
         private readonly ILanguageServer _router;
         private readonly GherkinManager _manager;
@@ -156,7 +158,7 @@ namespace SpecFlowLSP
 
             var completionItems =
                 context == CompletionContext.Step
-                    ? GetStepCompletion(request, filePath, line)
+                    ? GetStepCompletion(request, filePath, line, language)
                     : ToCompletionItem(ContextResolver.GetAllKeywordsForContext(context, language), line,
                         request.Position);
 
@@ -191,13 +193,26 @@ namespace SpecFlowLSP
         }
 
         private IEnumerable<CompletionItem> GetStepCompletion(TextDocumentPositionParams request, string filePath,
-            string line)
+            string line, GherkinDialect language)
         {
+            var stepPart = GetStep(line, language);
+
             var stepCompletion = _manager.GetSteps()
-                .Where(step => NotCurrentStep(step, filePath, request.Position.Line))
+                .Where(step => NotCurrentStep(step, filePath, request.Position.Line) && ContainsLine(step, stepPart))
                 .Distinct(StepInfo.TextComparer)
-                .Select(ToCompletionItem);
+                .Select(step  => ToCompletionItem(step, request.Position, stepPart.Length));
             return stepCompletion;
+        }
+
+        public static string GetStep(string line, GherkinDialect language)
+        {
+            var allKeywords = string.Join("|",language.StepKeywords).Replace("*", "\\*");
+            return Regex.Match(line, $"({allKeywords})(.*)").Groups[2].Value.Trim();
+        }
+
+        private bool ContainsLine(in StepInfo step, in string stepPart)
+        {
+            return step.Text.Contains(stepPart);
         }
 
         private static bool NotCurrentStep(StepInfo step, string filePath, long line)
@@ -205,12 +220,25 @@ namespace SpecFlowLSP
             return step.Line != line || step.FilePath != filePath;
         }
 
-        private static CompletionItem ToCompletionItem(StepInfo step)
+        private static CompletionItem ToCompletionItem(StepInfo step, Position position, int stepPartLength)
         {
             return new CompletionItem
             {
                 Kind = CompletionItemKind.Value,
                 Label = step.Text,
+                TextEdit = new TextEdit
+                {
+                    NewText = step.Text,
+                    Range = new Range
+                    {
+                        Start = new Position
+                        {
+                            Line = position.Line,
+                            Character = position.Character - stepPartLength
+                        },
+                        End = position
+                    }
+                },
                 CommitCharacters = new Container<string>("\n")
             };
         }

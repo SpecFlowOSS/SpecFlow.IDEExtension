@@ -8,13 +8,9 @@ namespace SpecFlowLSP
 {
     public static class ContextResolver
     {
-        private static readonly GherkinDialectProvider DialectProvider = new GherkinDialectProvider();
-
         public static CompletionContext ResolveContext(in IList<string> text,
-            in int lineIndex, in string featureLanguage)
+            in int lineIndex, in GherkinDialect dialect)
         {
-            var dialect = GetDialect(featureLanguage);
-            
             if (text.Count > lineIndex)
             {
                 var currentLineTrimmed = text[lineIndex].Trim();
@@ -36,21 +32,6 @@ namespace SpecFlowLSP
             }
 
             return SearchForContext(text, lineIndex, dialect);
-        }
-
-        private static GherkinDialect GetDialect(string featureLanguage)
-        {
-            GherkinDialect dialect;
-            try
-            {
-                dialect = DialectProvider.GetDialect(featureLanguage, new Location());
-            }
-            catch (NoSuchLanguageException)
-            {
-                dialect = DialectProvider.DefaultDialect;
-            }
-
-            return dialect;
         }
 
         private static CompletionContext SearchForContext(in IList<string> text, in int lineIndex,
@@ -155,9 +136,8 @@ namespace SpecFlowLSP
                 };
 
         public static IEnumerable<string> GetAllKeywordsForContext(in CompletionContext context,
-            in string language)
+            in GherkinDialect dialect)
         {
-            var dialect = GetDialect(language);
             return ContextKeywordMapping[context](dialect);
         }
     }

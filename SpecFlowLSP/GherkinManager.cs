@@ -1,12 +1,16 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Gherkin;
+using Gherkin.Ast;
 
 namespace SpecFlowLSP
 {
     public class GherkinManager
     {
+        private static readonly GherkinDialectProvider DialectProvider = new GherkinDialectProvider();
         private string _rootPath;
         private readonly Dictionary<string, GherkinFile> _parsedFiles = new Dictionary<string, GherkinFile>();
         private readonly Dictionary<string, string> _openFiles = new Dictionary<string, string>();
@@ -48,12 +52,27 @@ namespace SpecFlowLSP
             return _parsedFiles.Values.SelectMany(file => file.AllSteps).ToList();
         }
 
-        public string GetLanguage(in string filePath)
+        public GherkinDialect GetLanguage(in string filePath)
         {
-            return TryLanguage(_openFiles[filePath]);
+            return GetDialect(ParseLanguage(_openFiles[filePath]));
+        }
+        
+        private static GherkinDialect GetDialect(string featureLanguage)
+        {
+            GherkinDialect dialect;
+            try
+            {
+                dialect = DialectProvider.GetDialect(featureLanguage, new Location());
+            }
+            catch (NoSuchLanguageException)
+            {
+                dialect = DialectProvider.DefaultDialect;
+            }
+
+            return dialect;
         }
 
-        public string TryLanguage(in string text)
+        public string ParseLanguage(in string text)
         {
             var language = Regex.Match(text, @"#\s*language\s*:\s*(.*)");
             return language.Success ? language.Groups[1].Value : GetDefaultLanguage();

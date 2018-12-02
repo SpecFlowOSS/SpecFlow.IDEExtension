@@ -1,5 +1,12 @@
-#language: de
-Funktionalität:
-Szenario: 
-Gegeben sei I have a step
-Wenn I have a step
+Feature:
+Scenario:
+Given I have a step
+When I have a step
+Then I have a step
+And I have a step
+But I have a step
+But I have a step
+When I have a step
+Then I have a step
+Then I have a step
+Then I have a step
