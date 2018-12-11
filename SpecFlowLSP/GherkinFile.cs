@@ -23,7 +23,6 @@ namespace SpecFlowLSP
         }
 
 
-
         private readonly Lazy<IEnumerable<StepInfo>> _allStepsLazy;
         public IEnumerable<StepInfo> AllSteps => _allStepsLazy.Value;
         public string FilePath { get; }
@@ -33,8 +32,21 @@ namespace SpecFlowLSP
 
         private IEnumerable<StepInfo> CalculateSteps()
         {
-            return Document?.Feature?.Children?.SelectMany(scenario => scenario.Steps).Select(ToStepInfo).ToList()
+            return Document?.Feature?.Children?.SelectMany(GetStepsFromChildren).Select(ToStepInfo).ToList()
                    ?? Enumerable.Empty<StepInfo>();
+        }
+
+        private static IEnumerable<Step> GetStepsFromChildren(IHasLocation hasLocation)
+        {
+            switch (hasLocation)
+            {
+                case StepsContainer container:
+                    return container.Steps;
+                case Rule rule:
+                    return rule.Children?.SelectMany(GetStepsFromChildren) ?? Enumerable.Empty<Step>();
+                default:
+                    return Enumerable.Empty<Step>();
+            }
         }
 
         private StepInfo ToStepInfo(Step step)

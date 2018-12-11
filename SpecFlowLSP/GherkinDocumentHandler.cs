@@ -14,7 +14,7 @@ using ILanguageServer = OmniSharp.Extensions.LanguageServer.Server.ILanguageServ
 
 namespace SpecFlowLSP
 {
-    public class TextDocumentHandler : ITextDocumentSyncHandler, ICompletionHandler
+    public class GherkinDocumentHandler : ITextDocumentSyncHandler, ICompletionHandler
     {
         private readonly ILanguageServer _router;
         private readonly GherkinManager _manager;
@@ -22,14 +22,13 @@ namespace SpecFlowLSP
         private readonly DocumentSelector _documentSelector = new DocumentSelector(
             new DocumentFilter
             {
-                Pattern = "**/*.feature",
-                Language = "gherkin"
+                Pattern = "**/*.feature"
             }
         );
 
         private SynchronizationCapability _capability;
 
-        public TextDocumentHandler(in ILanguageServer router, in GherkinManager manager)
+        public GherkinDocumentHandler(in ILanguageServer router, in GherkinManager manager)
         {
             _router = router;
             _manager = manager;

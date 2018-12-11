@@ -6,9 +6,9 @@ using Gherkin;
 
 namespace SpecFlowLSP
 {
-    public static class Parser
+    public static class GherkinParser
     {
-        private static readonly Gherkin.Parser GherkinParser = new Gherkin.Parser();
+        private static readonly Parser GherkinParserInstance = new Parser();
 
         public static GherkinFile ParseFile(in string text, in string path)
         {
@@ -16,7 +16,7 @@ namespace SpecFlowLSP
             {
                 using (var stringReader = new StringReader(text))
                 {
-                    var gherkinDocument = GherkinParser.Parse(stringReader);
+                    var gherkinDocument = GherkinParserInstance.Parse(stringReader);
                     return new GherkinFile(path, Enumerable.Empty<ParseErrorInformation>(),
                         gherkinDocument);
                 }

@@ -29,11 +29,12 @@ namespace SpecFlowLSP
 
             server.OnInitialize(request =>
             {
-                manager.HandleStartup(new Uri(HttpUtility.UrlDecode(request.RootUri.OriginalString)).LocalPath);
+                manager.HandleStartup(UrlSanitizer.SanitizeUrl(request.RootUri.OriginalString));
                 return Task.CompletedTask;
             });
 
-            server.AddHandler(new TextDocumentHandler(server, manager));
+            server.AddHandler(new GherkinDocumentHandler(server, manager));
+            server.AddHandler(new CsharpDocumentHandler(server, manager));
             await server.Initialize();
             await server.WaitForExit;
         }
