@@ -27,11 +27,11 @@ namespace SpecFlowLSP
             return containsBindings ? syntaxTree : null;
         }
 
-        public static Compilation GetCompilationFromSyntaxTrees(in IEnumerable<SyntaxTree> trees) 
+        public static Compilation GetCompilationFromSyntaxTrees(in IEnumerable<SyntaxTree> trees)
         {
             var assembly = Assembly.GetExecutingAssembly();
             var netStandard = assembly.GetManifestResourceStream("SpecFlowLSP.Assemblies.netstandard.dll");
-            
+
             return CSharpCompilation.Create("HelloWorld")
                 .AddReferences(
                     MetadataReference.CreateFromFile(
@@ -41,7 +41,7 @@ namespace SpecFlowLSP
                 .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         }
 
-        public static IEnumerable<string> GetBindings(in Compilation compilation, in SyntaxTree syntaxTree)
+        public static IEnumerable<BindingResult> GetBindings(in Compilation compilation, in SyntaxTree syntaxTree)
         {
             var semanticModel = compilation.GetSemanticModel(syntaxTree);
 
@@ -57,58 +57,55 @@ namespace SpecFlowLSP
                     new AttributeInfo {Attribute = attribute, Method = methodSymbol}))
                 .Where(attributeInfo =>
                     attributeInfo.Attribute.AttributeClass.BaseType.Name == "StepDefinitionBaseAttribute")
-                .Select(GetStepFromAttributeInfo);
-        }
-        
-        
-        public static IEnumerable<string> GetBindings(in string file)
-        {
-            var syntaxTree = CSharpSyntaxTree.ParseText(File.ReadAllText(file));
-            var root = syntaxTree.GetCompilationUnitRoot();
-            var assembly = Assembly.GetExecutingAssembly();
-            var netStandard = assembly.GetManifestResourceStream("SpecFlowLSP.Assemblies.netstandard.dll");
-
-
-            var compilation = CSharpCompilation.Create("HelloWorld")
-                .AddReferences(
-                    MetadataReference.CreateFromFile(
-                        typeof(BindingAttribute).Assembly.Location),
-                    MetadataReference.CreateFromStream(netStandard))
-                .AddSyntaxTrees(syntaxTree)
-                .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-
-            var semanticModel = compilation.GetSemanticModel(syntaxTree);
-
-            return root.DescendantNodes()
-                .OfType<AttributeSyntax>()
-                .Where(attribute => attribute.Name.ToString().Equals("Binding"))
-                .Select(attribute => attribute.Parent?.Parent)
-                .OfType<ClassDeclarationSyntax>()
-                .SelectMany(classDecl => classDecl.DescendantNodes())
-                .OfType<MethodDeclarationSyntax>()
-                .Select(method => semanticModel.GetDeclaredSymbol(method, CancellationToken.None))
-                .SelectMany(methodSymbol => methodSymbol.GetAttributes().Select(attribute =>
-                    new AttributeInfo {Attribute = attribute, Method = methodSymbol}))
-                .Where(attributeInfo =>
-                    attributeInfo.Attribute.AttributeClass.BaseType.Name == "StepDefinitionBaseAttribute")
-                .Select(GetStepFromAttributeInfo);
+                .Select(GetStepFromAttributeInfo)
+                .ToList();
         }
 
-
-        private static string GetStepFromAttributeInfo(AttributeInfo attributeInfo)
+        private static BindingResult GetStepFromAttributeInfo(AttributeInfo attributeInfo)
         {
             var attribute = attributeInfo.Attribute;
+            var step = GetStep(attributeInfo, attribute);
 
+            var attributeRange = GetAttributeRange(attribute);
+
+            return new BindingResult(step, attributeRange);
+        }
+
+        private static string GetStep(AttributeInfo attributeInfo, AttributeData attribute)
+        {
             var ctorArguments = attribute.ConstructorArguments;
+            var namedArguments = attribute.NamedArguments;
+
             if (ctorArguments.Length > 0)
             {
                 return ctorArguments[0].Value.ToString();
             }
 
-            var namedArguments = attribute.NamedArguments;
             return namedArguments.Any(argument => argument.Key == "Regex")
                 ? namedArguments.Single(argument => argument.Key == "Regex").Value.Value.ToString()
                 : attributeInfo.Method.Name;
+        }
+
+        private static Range GetAttributeRange(AttributeData attribute)
+        {
+            var attributeSpan = attribute.ApplicationSyntaxReference.Span;
+            var lines = attribute.ApplicationSyntaxReference.SyntaxTree.GetText(CancellationToken.None).Lines;
+            var attributePos = lines.GetLinePositionSpan(attributeSpan);
+            var attributeRange = new Range(new Position(attributePos.Start.Line, attributePos.Start.Character),
+                new Position(attributePos.End.Line, attributePos.End.Character));
+            return attributeRange;
+        }
+
+        public struct BindingResult
+        {
+            public BindingResult(in string step, in Range position)
+            {
+                Step = step;
+                Position = position;
+            }
+
+            public string Step { get; }
+            public Range Position { get; }
         }
 
         private class AttributeInfo
@@ -117,11 +114,12 @@ namespace SpecFlowLSP
             public AttributeData Attribute { get; set; }
         }
 
-        public static Compilation ReplaceInCompilation(Compilation compilation, in SyntaxTree oldSyntaxTree, in SyntaxTree newSyntaxTree)
+        public static Compilation ReplaceInCompilation(Compilation compilation, in SyntaxTree oldSyntaxTree,
+            in SyntaxTree newSyntaxTree)
         {
             return compilation.ReplaceSyntaxTree(oldSyntaxTree, newSyntaxTree);
         }
-        
+
         public static Compilation AddToCompilation(in Compilation compilation, in SyntaxTree newSyntaxTree)
         {
             return compilation.AddSyntaxTrees(newSyntaxTree);

@@ -7,13 +7,18 @@ namespace SpecFlowLSP
     {
         public string Text { get; }
         public string FilePath { get; }
-        public int Line { get; }
-
-        public StepInfo(in string text, in string filePath, in int line)
+        public Range Position { get; }
+        
+        public StepInfo(in string text, in string filePath, Range position)
         {
             Text = text;
             FilePath = filePath;
-            Line = line - 1;
+            Position = position;
+        }
+
+        public bool Equals(StepInfo other)
+        {
+            return string.Equals(Text, other.Text) && string.Equals(FilePath, other.FilePath) && Equals(Position, other.Position);
         }
 
         public override bool Equals(object obj)
@@ -22,21 +27,17 @@ namespace SpecFlowLSP
             return obj is StepInfo other && Equals(other);
         }
 
-        public bool Equals(StepInfo other)
-        {
-            return string.Equals(Text, other.Text) && string.Equals(FilePath, other.FilePath) && Line == other.Line;
-        }
-
         public override int GetHashCode()
         {
             unchecked
             {
                 var hashCode = (Text != null ? Text.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (FilePath != null ? FilePath.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ Line;
+                hashCode = (hashCode * 397) ^ (Position != null ? Position.GetHashCode() : 0);
                 return hashCode;
             }
         }
+
 
         public static bool operator ==(StepInfo left, StepInfo right)
         {

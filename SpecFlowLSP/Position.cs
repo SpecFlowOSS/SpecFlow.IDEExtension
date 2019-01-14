@@ -1,8 +1,8 @@
 namespace SpecFlowLSP
 {
-    public class ErrorLocation
+    public class Position
     {
-        public ErrorLocation(in long line, in long character)
+        public Position(in long line, in long character)
         {
             Line = line;
             Character = character;

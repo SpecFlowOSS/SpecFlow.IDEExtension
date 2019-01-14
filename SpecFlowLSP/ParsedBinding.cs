@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 
 namespace SpecFlowLSP
 {
-    public class CsharpBinding
+    public class ParsedBinding
     {
         public string Path { get; set; }
         public IEnumerable<StepInfo> Steps { get; set; }

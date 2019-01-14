@@ -12,7 +12,7 @@ namespace SpecFlowLSP.Test
         [InlineData("Gegeben sei I am", "de", "I am")]
         public void GetStep_CorrectStep(in string fullStep, in string language, in string expected)
         {
-            var actual = GherkinDocumentHandler.GetStep(fullStep, new GherkinDialectProvider().GetDialect(language, new Location()));
+            var actual = GherkinDocumentHandler.GetStep(fullStep, new GherkinDialectProvider().GetDialect(language, new Gherkin.Ast.Location()));
             Assert.Equal(expected, actual);
         }
     }

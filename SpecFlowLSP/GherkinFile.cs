@@ -51,7 +51,12 @@ namespace SpecFlowLSP
 
         private StepInfo ToStepInfo(Step step)
         {
-            return new StepInfo(step.Text, FilePath, step.Location.Line);
+            return new StepInfo(step.Text, FilePath, GetRangeFromLocation(step.Location));
+        }
+
+        private Range GetRangeFromLocation(Gherkin.Ast.Location stepLocation)
+        {
+            return new Range(new Position(stepLocation.Line - 1, stepLocation.Column), new Position(stepLocation.Line - 1, stepLocation.Column));
         }
     }
 }

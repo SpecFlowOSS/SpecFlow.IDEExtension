@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text.RegularExpressions;
 using Gherkin;
+using Gherkin.Events.Args.Pickle;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Location = Gherkin.Ast.Location;
 
 namespace SpecFlowLSP
@@ -13,8 +16,8 @@ namespace SpecFlowLSP
     {
         private static readonly GherkinDialectProvider DialectProvider = new GherkinDialectProvider();
         private string _rootPath;
-        private readonly Dictionary<string, GherkinFile> _parsedFiles = new Dictionary<string, GherkinFile>();
-        private readonly Dictionary<string, CsharpBinding> _csharpBindings = new Dictionary<string, CsharpBinding>();
+        private readonly Dictionary<string, GherkinFile> _parsedFeatureFiles = new Dictionary<string, GherkinFile>();
+        private readonly Dictionary<string, ParsedBinding> _csharpBindings = new Dictionary<string, ParsedBinding>();
         private readonly Dictionary<string, string> _openFiles = new Dictionary<string, string>();
         private Compilation _compilation;
 
@@ -36,7 +39,7 @@ namespace SpecFlowLSP
             var file = GherkinParser.ParseFile(text, distinctPath);
             if (!file.HasError)
             {
-                _parsedFiles[distinctPath] = file;
+                _parsedFeatureFiles[distinctPath] = file;
             }
 
             return file.ErrorInformation;
@@ -62,7 +65,8 @@ namespace SpecFlowLSP
             {
                 Path = rootPath,
                 Filter = "*.cs",
-                NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.DirectoryName | NotifyFilters.FileName,
+                NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.DirectoryName |
+                               NotifyFilters.FileName,
                 IncludeSubdirectories = true
             };
 
@@ -76,7 +80,7 @@ namespace SpecFlowLSP
 
         private void OnCsharpCreated(object sender, FileSystemEventArgs e)
         {
-            HandleCsharpParseRequest(e.FullPath);
+            HandleCsharpFileChanged(e.FullPath);
         }
 
         private void OnCsharpChanged(object sender, FileSystemEventArgs e)
@@ -91,10 +95,17 @@ namespace SpecFlowLSP
 
         private void OnCsharpRenamed(object sender, RenamedEventArgs e)
         {
-            if(_csharpBindings.ContainsKey(e.OldFullPath) && e.FullPath.EndsWith(".cs"))
+            if (e.FullPath.EndsWith(".cs"))
             {
-                _csharpBindings[e.FullPath] = _csharpBindings[e.OldFullPath];
-                _csharpBindings.Remove(e.OldFullPath);
+                if (_csharpBindings.ContainsKey(e.OldFullPath))
+                {
+                    _csharpBindings[e.FullPath] = _csharpBindings[e.OldFullPath];
+                    _csharpBindings.Remove(e.OldFullPath);
+                }
+                else
+                {
+                    HandleCsharpFileChanged(e.FullPath);
+                }
             }
         }
 
@@ -103,7 +114,7 @@ namespace SpecFlowLSP
             var syntaxTree = CsharpParser.GetSyntaxTreeIfItContainsBindingsFromFile(path);
             if (syntaxTree != null)
             {
-                _csharpBindings[path] = new CsharpBinding {Path = path, SyntaxTree = syntaxTree};
+                _csharpBindings[path] = new ParsedBinding {Path = path, SyntaxTree = syntaxTree};
             }
         }
 
@@ -119,16 +130,17 @@ namespace SpecFlowLSP
             _csharpBindings.Values.ToList().ForEach(CalculateStepsFromBinding);
         }
 
-        private void CalculateStepsFromBinding(CsharpBinding binding)
+        private void CalculateStepsFromBinding(ParsedBinding parsedBinding)
         {
-            var steps = CsharpParser.GetBindings(_compilation, binding.SyntaxTree);
-            var stepInfos = steps.Select(step => new StepInfo(step, binding.Path, 0));
-            binding.Steps = stepInfos;
+            var steps = CsharpParser.GetBindings(_compilation, parsedBinding.SyntaxTree);
+            var stepInfos = steps.Select(bindingResult =>
+                new StepInfo(bindingResult.Step, parsedBinding.Path, bindingResult.Position));
+            parsedBinding.Steps = stepInfos;
         }
 
         public IEnumerable<StepInfo> GetSteps()
         {
-            return _parsedFiles.Values.SelectMany(file => file.AllSteps)
+            return _parsedFeatureFiles.Values.SelectMany(file => file.AllSteps)
                 .Union(
                     _csharpBindings.Values.SelectMany(binding => binding.Steps))
                 .ToList();
@@ -143,7 +155,7 @@ namespace SpecFlowLSP
         {
             try
             {
-                return DialectProvider.GetDialect(featureLanguage, new Location());
+                return DialectProvider.GetDialect(featureLanguage, new Gherkin.Ast.Location());
             }
             catch (NoSuchLanguageException)
             {
@@ -173,7 +185,7 @@ namespace SpecFlowLSP
             var fullPath = Path.GetFullPath(path);
 
             var newSyntaxTree = CsharpParser.GetSyntaxTreeIfItContainsBindingsFromFile(path);
-            CsharpBinding binding;
+            ParsedBinding binding;
 
             if (newSyntaxTree == null) return;
 
@@ -186,15 +198,44 @@ namespace SpecFlowLSP
             else
             {
                 _compilation = CsharpParser.AddToCompilation(_compilation, newSyntaxTree);
-                binding = new CsharpBinding {Path = path, SyntaxTree = newSyntaxTree};
+                binding = new ParsedBinding {Path = path, SyntaxTree = newSyntaxTree};
                 _csharpBindings[fullPath] = binding;
             }
 
             CalculateStepsFromBinding(binding);
         }
 
-        public void GetLocations()
+        public IEnumerable<Location> GetLocations(Position position, string path)
         {
+            try
+            {
+                var step = FindStep(position, Path.GetFullPath(path));
+
+                return _csharpBindings.Values
+                    .SelectMany(binding => binding.Steps)
+                    .Where(bindingStep => Regex.IsMatch(step.Text, bindingStep.Text))
+                    .Select(ToLocation);
+            }
+            catch (InvalidOperationException)
+            {
+                return Enumerable.Empty<Location>();
+            }
+        }
+
+        private static Location ToLocation(StepInfo step)
+        {
+           return new Location(step.Position, step.FilePath);
+        }
+
+        private StepInfo FindStep(Position position, string path)
+        {
+            if (_parsedFeatureFiles.ContainsKey(path))
+            {
+                return _parsedFeatureFiles[path].AllSteps
+                    .First(step => step.Position.Start.Line == position.Line);
+            }
+
+            throw new InvalidOperationException("Step not found!");
         }
     }
 }

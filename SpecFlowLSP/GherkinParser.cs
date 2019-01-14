@@ -48,7 +48,7 @@ namespace SpecFlowLSP
             return new ParseErrorInformation(error.Message, GetErrorLocationFromText(error, splitFile));
         }
 
-        private static ErrorRange GetErrorLocationFromText(in ParserException error,
+        private static Range GetErrorLocationFromText(in ParserException error,
             in List<string> splitFile)
         {
             var lineIdx = Math.Clamp(error.Location.Line - 1, 0, splitFile.Count - 1);
@@ -60,7 +60,7 @@ namespace SpecFlowLSP
                 endCharIdx = line.Length;
             }
 
-            return new ErrorRange(new ErrorLocation(lineIdx, startCharIndex), new ErrorLocation(lineIdx, endCharIdx));
+            return new Range(new Position(lineIdx, startCharIndex), new Position(lineIdx, endCharIdx));
         }
     }
 }

@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Gherkin;
+using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -14,7 +15,8 @@ using ILanguageServer = OmniSharp.Extensions.LanguageServer.Server.ILanguageServ
 
 namespace SpecFlowLSP
 {
-    public class GherkinDocumentHandler : ITextDocumentSyncHandler, ICompletionHandler
+    public class GherkinDocumentHandler : ITextDocumentSyncHandler, ICompletionHandler, IDefinitionHandler,
+        IReferencesHandler
     {
         private readonly ILanguageServer _router;
         private readonly GherkinManager _manager;
@@ -25,8 +27,6 @@ namespace SpecFlowLSP
                 Pattern = "**/*.feature"
             }
         );
-
-        private SynchronizationCapability _capability;
 
         public GherkinDocumentHandler(in ILanguageServer router, in GherkinManager manager)
         {
@@ -68,7 +68,6 @@ namespace SpecFlowLSP
 
         public void SetCapability(SynchronizationCapability capability)
         {
-            _capability = capability;
         }
 
         public Task Handle(DidOpenTextDocumentParams notification)
@@ -98,14 +97,14 @@ namespace SpecFlowLSP
             {
                 Message = errorInformation.Message,
                 Severity = DiagnosticSeverity.Error,
-                Range = new Range
+                Range = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range
                 {
-                    Start = new Position
+                    Start = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Position
                     {
                         Line = errorInformation.Range.Start.Line,
                         Character = errorInformation.Range.Start.Character
                     },
-                    End = new Position
+                    End = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Position
                     {
                         Line = errorInformation.Range.End.Line,
                         Character = errorInformation.Range.End.Character
@@ -118,7 +117,7 @@ namespace SpecFlowLSP
         {
             return new TextDocumentRegistrationOptions
             {
-                DocumentSelector = _documentSelector,
+                DocumentSelector = _documentSelector
             };
         }
 
@@ -135,7 +134,7 @@ namespace SpecFlowLSP
 
         TextDocumentSaveRegistrationOptions IRegistration<TextDocumentSaveRegistrationOptions>.GetRegistrationOptions()
         {
-            return new TextDocumentSaveRegistrationOptions()
+            return new TextDocumentSaveRegistrationOptions
             {
                 DocumentSelector = _documentSelector,
                 IncludeText = Options.Save.IncludeText
@@ -166,7 +165,7 @@ namespace SpecFlowLSP
         }
 
         private static IEnumerable<CompletionItem> ToCompletionItem(in IEnumerable<string> allKeywords, string line,
-            Position position)
+            OmniSharp.Extensions.LanguageServer.Protocol.Models.Position position)
         {
             return allKeywords
                 .Where(keyword => keyword.ToLower().Contains(line.Trim().ToLower()))
@@ -177,9 +176,9 @@ namespace SpecFlowLSP
                     TextEdit = new TextEdit
                     {
                         NewText = keyword,
-                        Range = new Range
+                        Range = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range
                         {
-                            Start = new Position
+                            Start = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Position
                             {
                                 Line = position.Line,
                                 Character = FileUtils.FindLineStart(line)
@@ -199,27 +198,28 @@ namespace SpecFlowLSP
             var stepCompletion = _manager.GetSteps()
                 .Where(step => NotCurrentStep(step, filePath, request.Position.Line) && ContainsLine(step, stepPart))
                 .Distinct(StepInfo.TextComparer)
-                .Select(step  => ToCompletionItem(step, request.Position, stepPart.Length));
+                .Select(step => ToCompletionItem(step, request.Position, stepPart.Length));
             return stepCompletion;
         }
 
         public static string GetStep(string line, GherkinDialect language)
         {
-            var allKeywords = string.Join("|",language.StepKeywords).Replace("*", "\\*");
+            var allKeywords = string.Join("|", language.StepKeywords).Replace("*", "\\*");
             return Regex.Match(line, $"({allKeywords})(.*)").Groups[2].Value.Trim();
         }
 
-        private bool ContainsLine(in StepInfo step, in string stepPart)
+        private static bool ContainsLine(in StepInfo step, in string stepPart)
         {
             return step.Text.Contains(stepPart);
         }
 
         private static bool NotCurrentStep(StepInfo step, string filePath, long line)
         {
-            return step.Line != line || step.FilePath != filePath;
+            return step.Position.Start.Line != line || step.FilePath != filePath;
         }
 
-        private static CompletionItem ToCompletionItem(StepInfo step, Position position, int stepPartLength)
+        private static CompletionItem ToCompletionItem(StepInfo step,
+            OmniSharp.Extensions.LanguageServer.Protocol.Models.Position position, int stepPartLength)
         {
             return new CompletionItem
             {
@@ -228,9 +228,9 @@ namespace SpecFlowLSP
                 TextEdit = new TextEdit
                 {
                     NewText = step.Text,
-                    Range = new Range
+                    Range = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range
                     {
-                        Start = new Position
+                        Start = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Position
                         {
                             Line = position.Line,
                             Character = position.Character - stepPartLength
@@ -253,6 +253,36 @@ namespace SpecFlowLSP
         }
 
         public void SetCapability(CompletionCapability capability)
+        {
+        }
+
+
+        Task<LocationOrLocations> IRequestHandler<TextDocumentPositionParams, LocationOrLocations>.Handle(
+            TextDocumentPositionParams request, CancellationToken token)
+        {
+            var locations = GetLocations(request.Position, request.TextDocument.Uri.AbsolutePath);
+            var lspLocations = locations.Select(PositionMapper.ToLspLocation);
+            return Task.FromResult(new LocationOrLocations(lspLocations));
+        }
+
+        private IEnumerable<Location> GetLocations(
+            OmniSharp.Extensions.LanguageServer.Protocol.Models.Position position, string path)
+        {
+            return _manager.GetLocations(PositionMapper.FromLspPosition(position), path);
+        }
+
+        public void SetCapability(DefinitionCapability capability)
+        {
+        }
+
+        public Task<LocationContainer> Handle(ReferenceParams request, CancellationToken token)
+        {
+            var locations = GetLocations(request.Position, request.TextDocument.Uri.AbsolutePath);
+            var lspLocations = locations.Select(PositionMapper.ToLspLocation);
+            return Task.FromResult(new LocationContainer(lspLocations));
+        }
+
+        public void SetCapability(ReferencesCapability capability)
         {
         }
     }
