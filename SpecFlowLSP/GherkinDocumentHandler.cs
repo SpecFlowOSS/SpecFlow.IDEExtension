@@ -6,19 +6,19 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Gherkin;
-using OmniSharp.Extensions.JsonRpc;
+using OmniSharp.Extensions.Embedded.MediatR;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
-using ILanguageServer = OmniSharp.Extensions.LanguageServer.Server.ILanguageServer;
 
 namespace SpecFlowLSP
 {
     public class GherkinDocumentHandler : ITextDocumentSyncHandler, ICompletionHandler, IDefinitionHandler,
         IReferencesHandler
     {
-        private readonly ILanguageServer _router;
+        private ILanguageServer _router;
         private readonly GherkinManager _manager;
 
         private readonly DocumentSelector _documentSelector = new DocumentSelector(
@@ -28,7 +28,7 @@ namespace SpecFlowLSP
             }
         );
 
-        public GherkinDocumentHandler(in ILanguageServer router, in GherkinManager manager)
+        public GherkinDocumentHandler(OmniSharp.Extensions.LanguageServer.Protocol.Server.ILanguageServer router, GherkinManager manager)
         {
             _router = router;
             _manager = manager;
@@ -46,15 +46,17 @@ namespace SpecFlowLSP
             OpenClose = true
         };
 
-        public Task Handle(DidChangeTextDocumentParams notification)
+        public Task<Unit> Handle(DidChangeTextDocumentParams request, CancellationToken cancellationToken)
         {
-            var path = notification.TextDocument.Uri.AbsolutePath;
-            var text = notification.ContentChanges.First().Text;
+            var path = request.TextDocument.Uri.AbsolutePath;
+            var text = request.ContentChanges.First().Text;
             var parserExceptions = _manager.HandleFileRequest(path, text);
-            SendDiagnostic(notification.TextDocument, parserExceptions);
+            SendDiagnostic(request.TextDocument, parserExceptions);
 
-            return Task.CompletedTask;
+            return Unit.Task;
         }
+
+        public TextDocumentSyncKind Change => TextDocumentSyncKind.Full;
 
         TextDocumentChangeRegistrationOptions IRegistration<TextDocumentChangeRegistrationOptions>.
             GetRegistrationOptions()
@@ -69,22 +71,22 @@ namespace SpecFlowLSP
         public void SetCapability(SynchronizationCapability capability)
         {
         }
-
-        public Task Handle(DidOpenTextDocumentParams notification)
+        
+        public Task<Unit> Handle(DidOpenTextDocumentParams request, CancellationToken cancellationToken)
         {
-            var path = notification.TextDocument.Uri.AbsolutePath;
-            var text = notification.TextDocument.Text;
+            var path = request.TextDocument.Uri.AbsolutePath;
+            var text = request.TextDocument.Text;
             var errorInformation = _manager.HandleFileRequest(path, text);
-            SendDiagnostic(notification.TextDocument, errorInformation);
+            SendDiagnostic(request.TextDocument, errorInformation);
 
-            return Task.CompletedTask;
+            return Unit.Task;
         }
 
         private void SendDiagnostic(TextDocumentIdentifier textDocument,
             IEnumerable<ParseErrorInformation> errorInformation)
         {
             var diagnostics = errorInformation.Select(ToDiagnostic);
-            _router.PublishDiagnostics(new PublishDiagnosticsParams
+            _router.Document.PublishDiagnostics(new PublishDiagnosticsParams
             {
                 Diagnostics = new Container<Diagnostic>(diagnostics),
                 Uri = textDocument.Uri
@@ -120,16 +122,17 @@ namespace SpecFlowLSP
                 DocumentSelector = _documentSelector
             };
         }
-
-        public Task Handle(DidCloseTextDocumentParams notification)
+        
+        public Task<Unit> Handle(DidCloseTextDocumentParams request, CancellationToken cancellationToken)
         {
-            _manager.HandleCloseRequest(notification.TextDocument.Uri.AbsolutePath);
-            return Task.CompletedTask;
+            _manager.HandleCloseRequest(request.TextDocument.Uri.AbsolutePath);
+            return Unit.Task;
         }
 
-        public Task Handle(DidSaveTextDocumentParams notification)
+        
+        public Task<Unit> Handle(DidSaveTextDocumentParams request, CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
+            return Unit.Task;
         }
 
         TextDocumentSaveRegistrationOptions IRegistration<TextDocumentSaveRegistrationOptions>.GetRegistrationOptions()
@@ -145,8 +148,9 @@ namespace SpecFlowLSP
         {
             return new TextDocumentAttributes(uri, "gherkin");
         }
-
-        public Task<CompletionList> Handle(TextDocumentPositionParams request, CancellationToken token)
+        
+        
+        public Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken)
         {
             var filePath = Path.GetFullPath(request.TextDocument.Uri.AbsolutePath);
             var language = _manager.GetLanguage(filePath);
@@ -255,10 +259,8 @@ namespace SpecFlowLSP
         public void SetCapability(CompletionCapability capability)
         {
         }
-
-
-        Task<LocationOrLocations> IRequestHandler<TextDocumentPositionParams, LocationOrLocations>.Handle(
-            TextDocumentPositionParams request, CancellationToken token)
+        
+        public Task<LocationOrLocations> Handle(DefinitionParams request, CancellationToken cancellationToken)
         {
             var locations = GetLocations(request.Position, request.TextDocument.Uri.AbsolutePath);
             var lspLocations = locations.Select(PositionMapper.ToLspLocation);
@@ -284,6 +286,6 @@ namespace SpecFlowLSP
 
         public void SetCapability(ReferencesCapability capability)
         {
-        }
+        }        
     }
 }

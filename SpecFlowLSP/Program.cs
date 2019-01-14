@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using System.Web;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 
@@ -19,23 +20,32 @@ namespace SpecFlowLSP
             {
                 await Task.Delay(100);
             }*/
-            
-            
-            var server = new LanguageServer(
-                Console.OpenStandardInput(),
-                Console.OpenStandardOutput(),
-                new LoggerFactory());
-            var manager = new GherkinManager();
 
-            server.OnInitialize(request =>
+
+            var manager = new GherkinManager();
+            var server = await LanguageServer.From(options =>
+            {
+                options
+                    .WithInput(Console.OpenStandardInput())
+                    .WithOutput(Console.OpenStandardOutput())
+                    .WithLoggerFactory(new LoggerFactory())
+                    .AddDefaultLoggingProvider()
+                    .WithServices(serviceCollection => serviceCollection.AddSingleton(manager))
+                    .WithHandler<GherkinDocumentHandler>()
+                    .OnInitialize(request =>
+                    {
+                        manager.HandleStartup(UrlSanitizer.SanitizeUrl(request.RootUri.OriginalString));
+                        return Task.CompletedTask;
+                    });
+            });
+
+
+            /*server.OnInitialize(request =>
             {
                 manager.HandleStartup(UrlSanitizer.SanitizeUrl(request.RootUri.OriginalString));
                 return Task.CompletedTask;
-            });
+            });*/
 
-            server.AddHandler(new GherkinDocumentHandler(server, manager));
-            //server.AddHandler(new CsharpDocumentHandler(server, manager));
-            await server.Initialize();
             await server.WaitForExit;
         }
     }

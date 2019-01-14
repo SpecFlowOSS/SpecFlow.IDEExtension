@@ -1,16 +1,13 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Gherkin;
+using OmniSharp.Extensions.Embedded.MediatR;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
-using OmniSharp.Extensions.LanguageServer.Server;
+using ILanguageServer = OmniSharp.Extensions.LanguageServer.Server.ILanguageServer;
 
 namespace SpecFlowLSP
 {
@@ -46,12 +43,14 @@ namespace SpecFlowLSP
             OpenClose = true
         };
 
-        public Task Handle(DidChangeTextDocumentParams notification)
+        public Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken)
         {
             var path = notification.TextDocument.Uri.AbsolutePath;
             _manager.HandleCsharpFileChanged(path);
-            return Task.CompletedTask;
+            return Unit.Task;
         }
+
+        public TextDocumentSyncKind Change => TextDocumentSyncKind.Full;
 
         TextDocumentChangeRegistrationOptions IRegistration<TextDocumentChangeRegistrationOptions>.
             GetRegistrationOptions()
@@ -68,9 +67,9 @@ namespace SpecFlowLSP
             _capability = capability;
         }
 
-        public Task Handle(DidOpenTextDocumentParams notification)
+        public Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
+            return Unit.Task;
         }
 
         TextDocumentRegistrationOptions IRegistration<TextDocumentRegistrationOptions>.GetRegistrationOptions()
@@ -81,20 +80,20 @@ namespace SpecFlowLSP
             };
         }
 
-        public Task Handle(DidCloseTextDocumentParams notification)
+        public Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken)
         {
             _manager.HandleCloseRequest(notification.TextDocument.Uri.AbsolutePath);
-            return Task.CompletedTask;
+            return Unit.Task;
         }
 
-        public Task Handle(DidSaveTextDocumentParams notification)
+        public Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
+            return Unit.Task;
         }
 
         TextDocumentSaveRegistrationOptions IRegistration<TextDocumentSaveRegistrationOptions>.GetRegistrationOptions()
         {
-            return new TextDocumentSaveRegistrationOptions()
+            return new TextDocumentSaveRegistrationOptions
             {
                 DocumentSelector = _documentSelector,
                 IncludeText = Options.Save.IncludeText
@@ -105,7 +104,8 @@ namespace SpecFlowLSP
         {
             return new TextDocumentAttributes(uri, "csharp");
         }
-        public Task<CompletionList> Handle(TextDocumentPositionParams request, CancellationToken token)
+        
+        public Task<CompletionList> Handle(CompletionParams request, CancellationToken token)
         {
             return Task.FromResult(new CompletionList());
         }
