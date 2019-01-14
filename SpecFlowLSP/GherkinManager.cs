@@ -53,6 +53,49 @@ namespace SpecFlowLSP
                 .ToList().ForEach(HandleCsharpParseRequest);
             CreateInitialCsharpCompilation();
             FetchAllSteps();
+            SetUpFileWatcher(rootPath);
+        }
+
+        private void SetUpFileWatcher(in string rootPath)
+        {
+            var watcher = new FileSystemWatcher
+            {
+                Path = rootPath,
+                Filter = "*.cs",
+                NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.DirectoryName | NotifyFilters.FileName,
+                IncludeSubdirectories = true
+            };
+
+            watcher.Created += OnCsharpCreated;
+            watcher.Changed += OnCsharpChanged;
+            watcher.Deleted += OnCsharpDeleted;
+            watcher.Renamed += OnCsharpRenamed;
+
+            watcher.EnableRaisingEvents = true;
+        }
+
+        private void OnCsharpCreated(object sender, FileSystemEventArgs e)
+        {
+            HandleCsharpParseRequest(e.FullPath);
+        }
+
+        private void OnCsharpChanged(object sender, FileSystemEventArgs e)
+        {
+            HandleCsharpFileChanged(e.FullPath);
+        }
+
+        private void OnCsharpDeleted(object sender, FileSystemEventArgs e)
+        {
+            _csharpBindings.Remove(e.FullPath);
+        }
+
+        private void OnCsharpRenamed(object sender, RenamedEventArgs e)
+        {
+            if(_csharpBindings.ContainsKey(e.OldFullPath) && e.FullPath.EndsWith(".cs"))
+            {
+                _csharpBindings[e.FullPath] = _csharpBindings[e.OldFullPath];
+                _csharpBindings.Remove(e.OldFullPath);
+            }
         }
 
         private void HandleCsharpParseRequest(string path)
@@ -125,15 +168,15 @@ namespace SpecFlowLSP
             return FileUtils.SplitString(file);
         }
 
-        public void HandleCsharpFileChanged(in string path, in string text)
+        public void HandleCsharpFileChanged(in string path)
         {
             var fullPath = Path.GetFullPath(path);
 
-            var newSyntaxTree = CsharpParser.GetSyntaxTreeIfItContainsBindingsFromText(text);
+            var newSyntaxTree = CsharpParser.GetSyntaxTreeIfItContainsBindingsFromFile(path);
             CsharpBinding binding;
-            
+
             if (newSyntaxTree == null) return;
-            
+
             if (_csharpBindings.ContainsKey(fullPath))
             {
                 binding = _csharpBindings[fullPath];
@@ -148,6 +191,10 @@ namespace SpecFlowLSP
             }
 
             CalculateStepsFromBinding(binding);
+        }
+
+        public void GetLocations()
+        {
         }
     }
 }

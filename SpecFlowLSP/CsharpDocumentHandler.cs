@@ -49,8 +49,7 @@ namespace SpecFlowLSP
         public Task Handle(DidChangeTextDocumentParams notification)
         {
             var path = notification.TextDocument.Uri.AbsolutePath;
-            var text = notification.ContentChanges.First().Text;
-            _manager.HandleCsharpFileChanged(path, text);
+            _manager.HandleCsharpFileChanged(path);
             return Task.CompletedTask;
         }
 

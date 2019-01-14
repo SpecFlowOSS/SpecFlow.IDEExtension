@@ -34,7 +34,7 @@ namespace SpecFlowLSP
             });
 
             server.AddHandler(new GherkinDocumentHandler(server, manager));
-            server.AddHandler(new CsharpDocumentHandler(server, manager));
+            //server.AddHandler(new CsharpDocumentHandler(server, manager));
             await server.Initialize();
             await server.WaitForExit;
         }
