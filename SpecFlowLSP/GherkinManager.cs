@@ -165,7 +165,7 @@ namespace SpecFlowLSP
 
         public string ParseLanguage(in string text)
         {
-            var language = Regex.Match(text, @"#\s*language\s*:\s*(.*)");
+            var language = Regex.Match(text, @"#\s*language\s*:\s*(.*?)\s*\r?$");
             return language.Success ? language.Groups[1].Value : GetDefaultLanguage();
         }
 
